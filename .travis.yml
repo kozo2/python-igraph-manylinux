@@ -1,0 +1,38 @@
+sudo: required
+services:
+- docker
+env:
+  global:
+  - VERSION="0.7.1.post6"
+  - PY27="cp27-cp27mu"
+  - PY35="cp35-cp35m"
+  - PY36="cp36-cp36m"
+before_install:
+- docker pull quay.io/pypa/manylinux1_x86_64
+- docker run --name "aaa" quay.io/pypa/manylinux1_x86_64 /bin/sh -c "cd && yum update -y && mkdir /wheelhouse &&
+  yum install zlib-devel libxml2-devel -y &&
+  mv /usr/lib/libxml2.a /usr/lib/libxml2.a.org && mv /usr/lib64/libxml2.a /usr/lib64/libxml2.a.org &&
+  git clone -b ${VERSION} git://github.com/igraph/python-igraph && cd python-igraph &&
+  /opt/python/${PY27}/bin/pip wheel . -w /wheelhouse &&
+  auditwheel repair /wheelhouse/python_igraph-${VERSION}-${PY27}-linux_x86_64.whl -w /wheelhouse &&
+  /opt/python/${PY35}/bin/pip wheel . -w /wheelhouse &&
+  auditwheel repair /wheelhouse/python_igraph-${VERSION}-${PY35}-linux_x86_64.whl -w /wheelhouse &&
+  /opt/python/${PY36}/bin/pip wheel . -w /wheelhouse &&
+  auditwheel repair /wheelhouse/python_igraph-${VERSION}-${PY36}-linux_x86_64.whl -w /wheelhouse"
+- docker cp aaa:/wheelhouse/python_igraph-${VERSION}-${PY27}-manylinux1_x86_64.whl ./
+- docker cp aaa:/wheelhouse/python_igraph-${VERSION}-${PY35}-manylinux1_x86_64.whl ./
+- docker cp aaa:/wheelhouse/python_igraph-${VERSION}-${PY36}-manylinux1_x86_64.whl ./
+script:
+- ls
+deploy:
+  provider: releases
+  api_key:
+    secure: e6Dw1V/pwkqrDfa39F8SnXt314JMoB4qCQPGxHsMS1w4t4qzrnJD+Iu6rewWlLaJ7f4siITPMkrlmXjSBEldLnBiclf87QXFDmDPDbSE0GVAHUx1zrYY8L7dDnLTjjypC85B0Y21CHodjv7KoQnBZJTsEhal2HAF+YQQ6KJ2ywi/UcEO9fCs3cxaBufkesDIK9tTdIGRjkDF6IR0j29zRjWjCjADBzS2Dd4tPFzuD8Z349mFaHPEnq7XKpqxCC7vuxAeLt820WixS8/NdT8jydE7j7/G7H9FM0iYthOKNZqzZP6SsZON8F1S9sGouYvxLyGJWhzLS+MgVNs4jOYT+OB2dUHQ7QZ+VuXn32jhkwCkXxJorVUyuAGwx7/KYErywGMmirer2TuuTf0pkNkHKks8g+0HNhocJLtOBgywXehdKa0HLYt5JrYG+kD07H9c0dr8Arirl14VGK7hgXbrcl2AUAu8QOuDZ65eG5NhcqEz0/mUG/karh9ksjCJy5gd5dUK8DLmvGNQ0LdursdhavZpi3zsMMZYWGUYf1uEYVFdElkOb9/QURrURs+n234Rz5+BgTf58HrJ8ew470SB7/CQZfVnmi8ZvS8im/KGe9oN86zVGfqdYwUh4DOnlDEMpB25Lp/WqpjS/gZpHah43Azj73oU40ByjmzjmKEE/Yc=
+  file:
+    - "python_igraph-${VERSION}-${PY27}-manylinux1_x86_64.whl"
+    - "python_igraph-${VERSION}-${PY35}-manylinux1_x86_64.whl"
+    - "python_igraph-${VERSION}-${PY36}-manylinux1_x86_64.whl"
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true
